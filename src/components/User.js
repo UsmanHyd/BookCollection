@@ -1,62 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react"; 
 import "./User.css"; 
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { firestore, auth } from "../firebase.js"; 
-import { signOut } from "firebase/auth"; // Import signOut
 
 function User() {
   const [books, setBooks] = useState([]); 
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all"); 
+  const [activeTab, setActiveTab] = useState("all");
 
-  const booksCollection = collection(firestore, "books"); 
+  const bookData = [
+    { id: 1, title: "The Great Gatsby", author: "F. Scott Fitzgerald", favorite: false },
+    { id: 2, title: "1984", author: "George Orwell", favorite: false },
+    { id: 3, title: "To Kill a Mockingbird", author: "Harper Lee", favorite: false },
+  ];
 
-  // 🚀 Fetch Books from Firestore
   useEffect(() => {
-    fetchBooks();
+    setBooks(bookData);
   }, []);
 
-  const fetchBooks = async () => {
-    try {
-      const snapshot = await getDocs(booksCollection);
-      const booksList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        favorite: doc.data().favorite || false,
-        ...doc.data(),
-      }));
-      setBooks(booksList);
-    } catch (error) {
-      console.error("⚠️ Error fetching books:", error);
-    }
+  const toggleFavorite = (id, isFavorite) => {
+    setBooks(books.map(book =>
+      book.id === id ? { ...book, favorite: !isFavorite } : book
+    ));
   };
 
-  // ❤️ Mark or Unmark as Favorite
-  const toggleFavorite = async (id, isFavorite) => {
-    try {
-      const bookRef = doc(firestore, "books", id);
-      await updateDoc(bookRef, { favorite: !isFavorite });
-      fetchBooks(); // Refresh List
-    } catch (error) {
-      console.error("⚠️ Error updating favorite:", error);
-    }
-  };
-
-  // 🚪 Logout Functionality
-  const handleLogout = () => {
-    signOut(auth)
-      .then(() => {
-        alert("👋 Logged out successfully!");
-        window.location.href = "/"; // Redirect to login or home
-      })
-      .catch((error) => console.error("⚠️ Logout Error:", error));
-  };
-
-  // 🔍 Filter Books Based on Search or Tab
   const filteredBooks = books.filter((book) => {
     if (activeTab === "favorites") {
-      return book.favorite && (book.title.toLowerCase().includes(searchTerm.toLowerCase()) || book.author.toLowerCase().includes(searchTerm.toLowerCase()));
+      return book.favorite && 
+        (book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        book.author.toLowerCase().includes(searchTerm.toLowerCase()));
     } else {
-      return book.title.toLowerCase().includes(searchTerm.toLowerCase()) || book.author.toLowerCase().includes(searchTerm.toLowerCase());
+      return book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        book.author.toLowerCase().includes(searchTerm.toLowerCase());
     }
   });
 
@@ -64,21 +37,15 @@ function User() {
     <div className="user-panel">
       <h2>📚 User Panel — Book Collection</h2>
 
-      {/* Logout Button */}
-      <button className="logout-btn" onClick={handleLogout}>
-        🚪 Logout
-      </button>
-
-      {/* Search Box */}
       <input
         type="text"
+        className="search-bar"
         placeholder="🔍 Search by title or author"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
-      {/* Tab Buttons */}
-      <div className="tab-buttons">
+      <div className="tab-menu">
         <button 
           className={activeTab === "all" ? "active" : ""} 
           onClick={() => setActiveTab("all")}
@@ -93,14 +60,13 @@ function User() {
         </button>
       </div>
 
-      {/* Books List */}
-      <ul className="book-list">
+      <div className="book-list">
         {filteredBooks.length === 0 ? (
-          <p>⚠️ No books found.</p>
+          <div style={{ width: '100%' }}><p>⚠️ No books found.</p></div>
         ) : (
           filteredBooks.map((book) => (
-            <li key={book.id}>
-              <h4>{book.title}</h4>
+            <div className="book-card" key={book.id}>
+              <h3>{book.title}</h3>
               <p>{book.author}</p>
               <button
                 className={book.favorite ? "fav-btn active" : "fav-btn"}
@@ -108,10 +74,10 @@ function User() {
               >
                 {book.favorite ? "❤️ Unfavorite" : "🤍 Favorite"}
               </button>
-            </li>
+            </div>
           ))
         )}
-      </ul>
+      </div>
     </div>
   );
 }
