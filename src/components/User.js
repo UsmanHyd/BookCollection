@@ -1,36 +1,57 @@
-import React, { useState, useEffect } from "react"; 
-import "./User.css"; 
+import React, { useState, useEffect } from "react";
+import { db } from "../firebase"; // adjust if needed
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc
+} from "firebase/firestore";
+
+import "./User.css";
 
 function User() {
-  const [books, setBooks] = useState([]); 
+  const [books, setBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const bookData = [
-    { id: 1, title: "The Great Gatsby", author: "F. Scott Fitzgerald", favorite: false },
-    { id: 2, title: "1984", author: "George Orwell", favorite: false },
-    { id: 3, title: "To Kill a Mockingbird", author: "Harper Lee", favorite: false },
-  ];
+  const fetchBooks = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "books"));
+      const booksData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setBooks(booksData);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+    }
+  };
 
   useEffect(() => {
-    setBooks(bookData);
+    fetchBooks();
   }, []);
 
-  const toggleFavorite = (id, isFavorite) => {
-    setBooks(books.map(book =>
-      book.id === id ? { ...book, favorite: !isFavorite } : book
-    ));
+  const toggleFavorite = async (id, isFavorite) => {
+    try {
+      const bookRef = doc(db, "books", id);
+      await updateDoc(bookRef, {
+        favorite: !isFavorite
+      });
+      // Update local state
+      setBooks(prevBooks =>
+        prevBooks.map(book =>
+          book.id === id ? { ...book, favorite: !isFavorite } : book
+        )
+      );
+    } catch (error) {
+      console.error("Error updating favorite:", error);
+    }
   };
 
   const filteredBooks = books.filter((book) => {
-    if (activeTab === "favorites") {
-      return book.favorite && 
-        (book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        book.author.toLowerCase().includes(searchTerm.toLowerCase()));
-    } else {
-      return book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        book.author.toLowerCase().includes(searchTerm.toLowerCase());
-    }
+    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchTerm.toLowerCase());
+    return activeTab === "favorites" ? book.favorite && matchesSearch : matchesSearch;
   });
 
   return (
@@ -46,14 +67,14 @@ function User() {
       />
 
       <div className="tab-menu">
-        <button 
-          className={activeTab === "all" ? "active" : ""} 
+        <button
+          className={activeTab === "all" ? "active" : ""}
           onClick={() => setActiveTab("all")}
         >
           📚 All Books
         </button>
-        <button 
-          className={activeTab === "favorites" ? "active" : ""} 
+        <button
+          className={activeTab === "favorites" ? "active" : ""}
           onClick={() => setActiveTab("favorites")}
         >
           ❤️ Favorites

@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { db } from '../firebase'; // adjust the path based on your folder structure
+import { collection, addDoc } from 'firebase/firestore';
 
 function AddBook() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const navigate = useNavigate();
 
-  const handleAddBook = (e) => {
+  const handleAddBook = async (e) => {
     e.preventDefault();
     if (!title || !author) {
       alert("Both title and author are required.");
       return;
     }
-    console.log("Book Added:", { title, author });
-    alert("Book added successfully!");
-    navigate('/');
+
+    try {
+      await addDoc(collection(db, "books"), {
+        title,
+        author,
+        favorite: false
+      });
+      alert("Book added successfully!");
+      navigate('/');
+    } catch (error) {
+      console.error("Error adding book:", error);
+      alert("Failed to add book.");
+    }
   };
-  
 
   return (
     <div className="add-book-panel">
